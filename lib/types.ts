@@ -118,3 +118,43 @@ export type TaskWithRelations = TaskRow & {
   responsible: Pick<UserRow, "id" | "name"> | null;
   client: Pick<ClientRow, "id" | "name"> | null;
 };
+
+export type KanbanStageRow = {
+  id: string;
+  org_id: string;
+  name: string;
+  order: number;
+  is_default: boolean;
+};
+
+export type LossReasonRow = {
+  id: string;
+  org_id: string;
+  name: string;
+};
+
+export type LeadInterestLevel = "baixo" | "medio" | "alto";
+
+export type LeadRow = {
+  id: string;
+  org_id: string;
+  stage_id: string;
+  responsible_id: string | null;
+  name: string;
+  company: string | null;
+  niche: string | null;
+  origin: string | null;
+  service_of_interest: string | null;
+  potential_value_cents: number;
+  interest_level: LeadInterestLevel;
+  next_action: string | null;
+  next_contact_date: string | null;
+  notes: string | null;
+  lost_reason_id: string | null;
+  converted_client_id: string | null;
+  created_at: string;
+};
+
+export type LeadWithRelations = LeadRow & {
+  responsible: Pick<UserRow, "id" | "name"> | null;
+};
