@@ -158,3 +158,48 @@ export type LeadRow = {
 export type LeadWithRelations = LeadRow & {
   responsible: Pick<UserRow, "id" | "name"> | null;
 };
+
+export type CampaignRow = {
+  id: string;
+  org_id: string;
+  client_id: string;
+  name: string;
+  platform: string;
+  objective: string | null;
+  status: "planejada" | "ativa" | "pausada" | "encerrada";
+  period_start: string | null;
+  period_end: string | null;
+  budget_cents: number;
+  spent_cents: number;
+  audience: string | null;
+  offer: string | null;
+  landing_page: string | null;
+  notes: string | null;
+};
+
+export type CampaignWithClient = CampaignRow & { client: { id: string; name: string } | null };
+
+export type CampaignMetricRow = {
+  id: string;
+  campaign_id: string;
+  period: string;
+  impressions: number;
+  reach: number;
+  clicks: number;
+  leads: number;
+  conversions: number;
+  appointments: number;
+  shows: number;
+  sales: number;
+  spent_cents: number;
+  attributed_revenue_cents: number;
+};
+
+export type MetricGoalRow = {
+  id: string;
+  org_id: string;
+  client_id: string;
+  metric_name: string;
+  target_value: number;
+  period: string;
+};
