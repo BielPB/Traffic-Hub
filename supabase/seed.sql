@@ -24,14 +24,14 @@ from (values
   ('Reunião agendada', 4), ('Proposta enviada', 5), ('Negociação', 6),
   ('Fechado', 7), ('Perdido', 8), ('Follow-up futuro', 9)
 ) as s(name, ord)
-on conflict do nothing;
+on conflict (org_id, name) do nothing;
 
 insert into loss_reasons (org_id, name)
 select '00000000-0000-0000-0000-00000000000a', name
 from (values ('Sem orçamento'), ('Fechou com concorrente'), ('Sem fit de momento'), ('Sem resposta')) as s(name)
-on conflict do nothing;
+on conflict (org_id, name) do nothing;
 
 insert into cost_categories (org_id, name)
 select '00000000-0000-0000-0000-00000000000a', name
 from (values ('Equipe'), ('Ferramentas'), ('Freelancers'), ('Criativos'), ('Outros')) as s(name)
-on conflict do nothing;
+on conflict (org_id, name) do nothing;

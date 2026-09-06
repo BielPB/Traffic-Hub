@@ -3,12 +3,14 @@
 -- users.auth_user_id; até a Fase 7 (login real) nada nesta base é acessado
 -- com a chave anon, só com a service role (que ignora RLS), então estas
 -- políticas ficam prontas e testáveis sem travar o desenvolvimento atual.
+-- Idempotente: seguro rodar este arquivo mais de uma vez.
 
-create function current_org_id() returns uuid as $$
+create or replace function current_org_id() returns uuid as $$
   select org_id from users where auth_user_id = auth.uid() limit 1;
 $$ language sql stable security definer;
 
 alter table organizations enable row level security;
+drop policy if exists org_isolation on organizations;
 create policy org_isolation on organizations
   for all using (id = current_org_id()) with check (id = current_org_id());
 
@@ -25,6 +27,7 @@ begin
   ])
   loop
     execute format('alter table %I enable row level security', t);
+    execute format('drop policy if exists org_isolation on %I', t);
     execute format(
       'create policy org_isolation on %I for all using (org_id = current_org_id()) with check (org_id = current_org_id())',
       t
@@ -34,6 +37,7 @@ end $$;
 
 -- tabelas sem org_id direto: isolam via join com a tabela dona do registro
 alter table client_team_members enable row level security;
+drop policy if exists org_isolation on client_team_members;
 create policy org_isolation on client_team_members
   for all using (
     exists (select 1 from clients c where c.id = client_team_members.client_id and c.org_id = current_org_id())
@@ -42,6 +46,7 @@ create policy org_isolation on client_team_members
   );
 
 alter table campaign_metrics enable row level security;
+drop policy if exists org_isolation on campaign_metrics;
 create policy org_isolation on campaign_metrics
   for all using (
     exists (select 1 from campaigns cp where cp.id = campaign_metrics.campaign_id and cp.org_id = current_org_id())
@@ -50,6 +55,7 @@ create policy org_isolation on campaign_metrics
   );
 
 alter table strategy_sections enable row level security;
+drop policy if exists org_isolation on strategy_sections;
 create policy org_isolation on strategy_sections
   for all using (
     exists (select 1 from strategies s where s.id = strategy_sections.strategy_id and s.org_id = current_org_id())
@@ -58,6 +64,7 @@ create policy org_isolation on strategy_sections
   );
 
 alter table notification_settings enable row level security;
+drop policy if exists own_notifications on notification_settings;
 create policy own_notifications on notification_settings
   for all using (
     exists (select 1 from users u where u.id = notification_settings.user_id and u.org_id = current_org_id())

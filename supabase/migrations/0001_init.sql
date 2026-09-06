@@ -6,35 +6,65 @@
 create extension if not exists pgcrypto;
 
 -- ---------------------------------------------------------------------------
--- enums
+-- enums (idempotente: seguro rodar este arquivo mais de uma vez)
 -- ---------------------------------------------------------------------------
-create type user_role as enum ('administrador','coordenador','gestor_trafego','comercial','financeiro','visualizador');
-create type user_status as enum ('ativo','inativo');
+do $$ begin
+  create type user_role as enum ('administrador','coordenador','gestor_trafego','comercial','financeiro','visualizador');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type user_status as enum ('ativo','inativo');
+exception when duplicate_object then null; end $$;
 
-create type client_status as enum ('onboarding','planejamento','ativo','atencao','pausado','encerrado');
-create type client_health as enum ('saudavel','atencao','critico');
+do $$ begin
+  create type client_status as enum ('onboarding','planejamento','ativo','atencao','pausado','encerrado');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type client_health as enum ('saudavel','atencao','critico');
+exception when duplicate_object then null; end $$;
 
-create type contract_type as enum ('recorrente','avulso');
-create type contract_status as enum ('ativo','encerrado');
-create type charge_status as enum ('pendente','parcial','pago','vencido');
-create type cost_type as enum ('interno','externo');
+do $$ begin
+  create type contract_type as enum ('recorrente','avulso');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type contract_status as enum ('ativo','encerrado');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type charge_status as enum ('pendente','parcial','pago','vencido');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type cost_type as enum ('interno','externo');
+exception when duplicate_object then null; end $$;
 
-create type lead_interest_level as enum ('baixo','medio','alto');
+do $$ begin
+  create type lead_interest_level as enum ('baixo','medio','alto');
+exception when duplicate_object then null; end $$;
 
-create type campaign_status as enum ('planejada','ativa','pausada','encerrada');
+do $$ begin
+  create type campaign_status as enum ('planejada','ativa','pausada','encerrada');
+exception when duplicate_object then null; end $$;
 
-create type strategy_status as enum ('atual','arquivada');
+do $$ begin
+  create type strategy_status as enum ('atual','arquivada');
+exception when duplicate_object then null; end $$;
 
-create type task_related_entity as enum ('client','campaign','strategy','lead');
-create type task_priority as enum ('baixa','media','alta');
-create type task_status as enum ('pendente','em_andamento','concluida');
+do $$ begin
+  create type task_related_entity as enum ('client','campaign','strategy','lead');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type task_priority as enum ('baixa','media','alta');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type task_status as enum ('pendente','em_andamento','concluida');
+exception when duplicate_object then null; end $$;
 
-create type note_entity_type as enum ('client','lead','campaign','strategy','task');
+do $$ begin
+  create type note_entity_type as enum ('client','lead','campaign','strategy','task');
+exception when duplicate_object then null; end $$;
 
 -- ---------------------------------------------------------------------------
 -- util: updated_at automático
 -- ---------------------------------------------------------------------------
-create function set_updated_at() returns trigger as $$
+create or replace function set_updated_at() returns trigger as $$
 begin
   new.updated_at = now();
   return new;
@@ -44,7 +74,7 @@ $$ language plpgsql;
 -- ---------------------------------------------------------------------------
 -- organizações e pessoas
 -- ---------------------------------------------------------------------------
-create table organizations (
+create table if not exists organizations (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   slug text not null unique,
@@ -55,10 +85,10 @@ create table organizations (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-create trigger trg_organizations_updated_at before update on organizations
+create or replace trigger trg_organizations_updated_at before update on organizations
   for each row execute function set_updated_at();
 
-create table users (
+create table if not exists users (
   id uuid primary key default gen_random_uuid(),
   org_id uuid not null references organizations(id) on delete cascade,
   auth_user_id uuid, -- preenchido quando a Fase 7 ligar ao Supabase Auth
@@ -72,33 +102,35 @@ create table users (
   updated_at timestamptz not null default now(),
   unique (org_id, email)
 );
-create index idx_users_org on users(org_id);
-create trigger trg_users_updated_at before update on users
+create index if not exists idx_users_org on users(org_id);
+create or replace trigger trg_users_updated_at before update on users
   for each row execute function set_updated_at();
 
 -- ---------------------------------------------------------------------------
 -- comercial: kanban de prospecção
 -- ---------------------------------------------------------------------------
-create table kanban_stages (
+create table if not exists kanban_stages (
   id uuid primary key default gen_random_uuid(),
   org_id uuid not null references organizations(id) on delete cascade,
   name text not null,
   "order" int not null,
   is_default boolean not null default false,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  unique (org_id, name)
 );
-create index idx_kanban_stages_org on kanban_stages(org_id);
+create index if not exists idx_kanban_stages_org on kanban_stages(org_id);
 
-create table loss_reasons (
+create table if not exists loss_reasons (
   id uuid primary key default gen_random_uuid(),
   org_id uuid not null references organizations(id) on delete cascade,
-  name text not null
+  name text not null,
+  unique (org_id, name)
 );
-create index idx_loss_reasons_org on loss_reasons(org_id);
+create index if not exists idx_loss_reasons_org on loss_reasons(org_id);
 
 -- clients é criada antes de leads por causa do FK converted_client_id? Na
 -- verdade o inverso: leads referencia clients, então clients vem primeiro.
-create table clients (
+create table if not exists clients (
   id uuid primary key default gen_random_uuid(),
   org_id uuid not null references organizations(id) on delete cascade,
   name text not null,
@@ -123,19 +155,19 @@ create table clients (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-create index idx_clients_org on clients(org_id);
-create index idx_clients_responsible on clients(responsible_user_id);
-create trigger trg_clients_updated_at before update on clients
+create index if not exists idx_clients_org on clients(org_id);
+create index if not exists idx_clients_responsible on clients(responsible_user_id);
+create or replace trigger trg_clients_updated_at before update on clients
   for each row execute function set_updated_at();
 
-create table client_team_members (
+create table if not exists client_team_members (
   client_id uuid not null references clients(id) on delete cascade,
   user_id uuid not null references users(id) on delete cascade,
   role_in_client text,
   primary key (client_id, user_id)
 );
 
-create table leads (
+create table if not exists leads (
   id uuid primary key default gen_random_uuid(),
   org_id uuid not null references organizations(id) on delete cascade,
   stage_id uuid not null references kanban_stages(id),
@@ -155,15 +187,15 @@ create table leads (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-create index idx_leads_org on leads(org_id);
-create index idx_leads_stage on leads(stage_id);
-create trigger trg_leads_updated_at before update on leads
+create index if not exists idx_leads_org on leads(org_id);
+create index if not exists idx_leads_stage on leads(stage_id);
+create or replace trigger trg_leads_updated_at before update on leads
   for each row execute function set_updated_at();
 
 -- ---------------------------------------------------------------------------
 -- financeiro
 -- ---------------------------------------------------------------------------
-create table contracts (
+create table if not exists contracts (
   id uuid primary key default gen_random_uuid(),
   org_id uuid not null references organizations(id) on delete cascade,
   client_id uuid not null references clients(id) on delete cascade,
@@ -176,11 +208,11 @@ create table contracts (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-create index idx_contracts_client on contracts(client_id);
-create trigger trg_contracts_updated_at before update on contracts
+create index if not exists idx_contracts_client on contracts(client_id);
+create or replace trigger trg_contracts_updated_at before update on contracts
   for each row execute function set_updated_at();
 
-create table charges (
+create table if not exists charges (
   id uuid primary key default gen_random_uuid(),
   org_id uuid not null references organizations(id) on delete cascade,
   client_id uuid not null references clients(id) on delete cascade,
@@ -196,19 +228,20 @@ create table charges (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-create index idx_charges_client on charges(client_id);
-create index idx_charges_due_date on charges(due_date);
-create trigger trg_charges_updated_at before update on charges
+create index if not exists idx_charges_client on charges(client_id);
+create index if not exists idx_charges_due_date on charges(due_date);
+create or replace trigger trg_charges_updated_at before update on charges
   for each row execute function set_updated_at();
 
-create table cost_categories (
+create table if not exists cost_categories (
   id uuid primary key default gen_random_uuid(),
   org_id uuid not null references organizations(id) on delete cascade,
-  name text not null
+  name text not null,
+  unique (org_id, name)
 );
-create index idx_cost_categories_org on cost_categories(org_id);
+create index if not exists idx_cost_categories_org on cost_categories(org_id);
 
-create table costs (
+create table if not exists costs (
   id uuid primary key default gen_random_uuid(),
   org_id uuid not null references organizations(id) on delete cascade,
   client_id uuid not null references clients(id) on delete cascade,
@@ -220,9 +253,9 @@ create table costs (
   cost_date date not null default current_date,
   created_at timestamptz not null default now()
 );
-create index idx_costs_client on costs(client_id);
+create index if not exists idx_costs_client on costs(client_id);
 
-create table media_budgets (
+create table if not exists media_budgets (
   id uuid primary key default gen_random_uuid(),
   org_id uuid not null references organizations(id) on delete cascade,
   client_id uuid not null references clients(id) on delete cascade,
@@ -232,12 +265,12 @@ create table media_budgets (
   spent_value_cents bigint not null default 0,
   created_at timestamptz not null default now()
 );
-create index idx_media_budgets_client on media_budgets(client_id);
+create index if not exists idx_media_budgets_client on media_budgets(client_id);
 
 -- ---------------------------------------------------------------------------
 -- campanhas e métricas
 -- ---------------------------------------------------------------------------
-create table campaigns (
+create table if not exists campaigns (
   id uuid primary key default gen_random_uuid(),
   org_id uuid not null references organizations(id) on delete cascade,
   client_id uuid not null references clients(id) on delete cascade,
@@ -256,13 +289,13 @@ create table campaigns (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-create index idx_campaigns_client on campaigns(client_id);
-create trigger trg_campaigns_updated_at before update on campaigns
+create index if not exists idx_campaigns_client on campaigns(client_id);
+create or replace trigger trg_campaigns_updated_at before update on campaigns
   for each row execute function set_updated_at();
 
 -- Métricas brutas por período; CTR/CPC/CPL/CPA/ROAS são sempre calculados em
 -- consulta (view/aplicação), nunca gravados, para não dessincronizar da fórmula.
-create table campaign_metrics (
+create table if not exists campaign_metrics (
   id uuid primary key default gen_random_uuid(),
   campaign_id uuid not null references campaigns(id) on delete cascade,
   period date not null,
@@ -279,9 +312,9 @@ create table campaign_metrics (
   created_at timestamptz not null default now(),
   unique (campaign_id, period)
 );
-create index idx_campaign_metrics_campaign on campaign_metrics(campaign_id);
+create index if not exists idx_campaign_metrics_campaign on campaign_metrics(campaign_id);
 
-create table metric_goals (
+create table if not exists metric_goals (
   id uuid primary key default gen_random_uuid(),
   org_id uuid not null references organizations(id) on delete cascade,
   client_id uuid not null references clients(id) on delete cascade,
@@ -289,12 +322,12 @@ create table metric_goals (
   target_value numeric not null,
   period text not null
 );
-create index idx_metric_goals_client on metric_goals(client_id);
+create index if not exists idx_metric_goals_client on metric_goals(client_id);
 
 -- ---------------------------------------------------------------------------
 -- estratégia
 -- ---------------------------------------------------------------------------
-create table strategy_templates (
+create table if not exists strategy_templates (
   id uuid primary key default gen_random_uuid(),
   org_id uuid not null references organizations(id) on delete cascade,
   name text not null,
@@ -302,7 +335,7 @@ create table strategy_templates (
   created_at timestamptz not null default now()
 );
 
-create table strategies (
+create table if not exists strategies (
   id uuid primary key default gen_random_uuid(),
   org_id uuid not null references organizations(id) on delete cascade,
   client_id uuid not null references clients(id) on delete cascade,
@@ -311,21 +344,21 @@ create table strategies (
   created_by uuid references users(id) on delete set null,
   created_at timestamptz not null default now()
 );
-create index idx_strategies_client on strategies(client_id);
+create index if not exists idx_strategies_client on strategies(client_id);
 
-create table strategy_sections (
+create table if not exists strategy_sections (
   id uuid primary key default gen_random_uuid(),
   strategy_id uuid not null references strategies(id) on delete cascade,
   section_type text not null,
   "order" int not null,
   content jsonb not null default '{}'
 );
-create index idx_strategy_sections_strategy on strategy_sections(strategy_id);
+create index if not exists idx_strategy_sections_strategy on strategy_sections(strategy_id);
 
 -- ---------------------------------------------------------------------------
 -- operação: tarefas, comentários, anexos, auditoria, relatórios, notificações
 -- ---------------------------------------------------------------------------
-create table tasks (
+create table if not exists tasks (
   id uuid primary key default gen_random_uuid(),
   org_id uuid not null references organizations(id) on delete cascade,
   client_id uuid references clients(id) on delete cascade,
@@ -341,13 +374,13 @@ create table tasks (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-create index idx_tasks_org on tasks(org_id);
-create index idx_tasks_responsible on tasks(responsible_user_id);
-create index idx_tasks_due_date on tasks(due_date);
-create trigger trg_tasks_updated_at before update on tasks
+create index if not exists idx_tasks_org on tasks(org_id);
+create index if not exists idx_tasks_responsible on tasks(responsible_user_id);
+create index if not exists idx_tasks_due_date on tasks(due_date);
+create or replace trigger trg_tasks_updated_at before update on tasks
   for each row execute function set_updated_at();
 
-create table comments (
+create table if not exists comments (
   id uuid primary key default gen_random_uuid(),
   org_id uuid not null references organizations(id) on delete cascade,
   entity_type note_entity_type not null,
@@ -356,9 +389,9 @@ create table comments (
   content text not null,
   created_at timestamptz not null default now()
 );
-create index idx_comments_entity on comments(entity_type, entity_id);
+create index if not exists idx_comments_entity on comments(entity_type, entity_id);
 
-create table attachments (
+create table if not exists attachments (
   id uuid primary key default gen_random_uuid(),
   org_id uuid not null references organizations(id) on delete cascade,
   entity_type note_entity_type not null,
@@ -369,9 +402,9 @@ create table attachments (
   uploaded_by uuid references users(id) on delete set null,
   created_at timestamptz not null default now()
 );
-create index idx_attachments_entity on attachments(entity_type, entity_id);
+create index if not exists idx_attachments_entity on attachments(entity_type, entity_id);
 
-create table audit_log (
+create table if not exists audit_log (
   id uuid primary key default gen_random_uuid(),
   org_id uuid not null references organizations(id) on delete cascade,
   user_id uuid references users(id) on delete set null,
@@ -381,10 +414,10 @@ create table audit_log (
   diff jsonb,
   created_at timestamptz not null default now()
 );
-create index idx_audit_log_entity on audit_log(entity_type, entity_id);
-create index idx_audit_log_org on audit_log(org_id);
+create index if not exists idx_audit_log_entity on audit_log(entity_type, entity_id);
+create index if not exists idx_audit_log_org on audit_log(org_id);
 
-create table reports (
+create table if not exists reports (
   id uuid primary key default gen_random_uuid(),
   org_id uuid not null references organizations(id) on delete cascade,
   client_id uuid references clients(id) on delete cascade,
@@ -395,9 +428,9 @@ create table reports (
   generated_by uuid references users(id) on delete set null,
   generated_at timestamptz not null default now()
 );
-create index idx_reports_client on reports(client_id);
+create index if not exists idx_reports_client on reports(client_id);
 
-create table notification_settings (
+create table if not exists notification_settings (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references users(id) on delete cascade,
   type text not null,
