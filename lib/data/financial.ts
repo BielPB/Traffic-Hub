@@ -125,6 +125,28 @@ export async function sumCostsForCompetencia(
   return (data ?? []).reduce((sum, row) => sum + row.value_cents, 0);
 }
 
+export async function listCostsForCompetencia(orgId: string, competencia: string): Promise<CostRow[]> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("costs")
+    .select("*")
+    .eq("org_id", orgId)
+    .eq("competencia", competencia);
+  if (error) throw new Error(`Falha ao carregar custos: ${error.message}`);
+  return data ?? [];
+}
+
+export async function listMediaBudgetsForCompetencia(orgId: string, competencia: string): Promise<MediaBudgetRow[]> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("media_budgets")
+    .select("*")
+    .eq("org_id", orgId)
+    .eq("competencia", competencia);
+  if (error) throw new Error(`Falha ao carregar verba de mídia: ${error.message}`);
+  return data ?? [];
+}
+
 export type CostInput = {
   client_id: string;
   category_id: string | null;

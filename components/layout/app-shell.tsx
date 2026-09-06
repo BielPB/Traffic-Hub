@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { CurrentUser } from "@/lib/session";
+import type { Alert } from "@/lib/data/alerts";
 import { Sidebar } from "./sidebar";
 import { TopBar } from "./top-bar";
 import { MobileTabBar } from "./mobile-tab-bar";
@@ -9,9 +10,11 @@ import { MobileNavSheet } from "./mobile-nav-sheet";
 
 export function AppShell({
   user,
+  alerts,
   children,
 }: {
   user: CurrentUser;
+  alerts: Alert[];
   children: React.ReactNode;
 }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -28,6 +31,7 @@ export function AppShell({
           orgName={user.orgName}
           role={user.role}
           avatarInitials={user.avatarInitials}
+          alerts={alerts}
           onOpenMobileNav={() => setMobileNavOpen(true)}
         />
         <main className="flex-1 px-4 pb-24 pt-6 md:px-6 md:pb-10 lg:px-10">

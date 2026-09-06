@@ -1,7 +1,15 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { getCurrentUser } from "@/lib/session";
+import { listAlerts } from "@/lib/data/alerts";
 
-export default function AppGroupLayout({ children }: { children: React.ReactNode }) {
+export const dynamic = "force-dynamic";
+
+export default async function AppGroupLayout({ children }: { children: React.ReactNode }) {
   const user = getCurrentUser();
-  return <AppShell user={user}>{children}</AppShell>;
+  const alerts = await listAlerts(user.orgId);
+  return (
+    <AppShell user={user} alerts={alerts}>
+      {children}
+    </AppShell>
+  );
 }
