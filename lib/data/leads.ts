@@ -22,6 +22,35 @@ export async function listLossReasons(orgId: string): Promise<LossReasonRow[]> {
   return data ?? [];
 }
 
+export async function createKanbanStage(orgId: string, name: string, order: number): Promise<void> {
+  const supabase = createAdminClient();
+  const { error } = await supabase.from("kanban_stages").insert({ org_id: orgId, name, order });
+  if (error) throw new Error(`Falha ao criar etapa: ${error.message}`);
+}
+
+export async function deleteKanbanStage(orgId: string, stageId: string): Promise<void> {
+  const supabase = createAdminClient();
+  const { error } = await supabase.from("kanban_stages").delete().eq("org_id", orgId).eq("id", stageId);
+  if (error) throw new Error(`Falha ao remover etapa: ${error.message}`);
+}
+
+export async function reorderKanbanStages(orderedIds: string[]): Promise<void> {
+  const supabase = createAdminClient();
+  await Promise.all(orderedIds.map((id, index) => supabase.from("kanban_stages").update({ order: index }).eq("id", id)));
+}
+
+export async function createLossReason(orgId: string, name: string): Promise<void> {
+  const supabase = createAdminClient();
+  const { error } = await supabase.from("loss_reasons").insert({ org_id: orgId, name });
+  if (error) throw new Error(`Falha ao criar motivo de perda: ${error.message}`);
+}
+
+export async function deleteLossReason(orgId: string, reasonId: string): Promise<void> {
+  const supabase = createAdminClient();
+  const { error } = await supabase.from("loss_reasons").delete().eq("org_id", orgId).eq("id", reasonId);
+  if (error) throw new Error(`Falha ao remover motivo de perda: ${error.message}`);
+}
+
 export async function listLeads(orgId: string): Promise<LeadWithRelations[]> {
   const supabase = createAdminClient();
   const { data, error } = await supabase

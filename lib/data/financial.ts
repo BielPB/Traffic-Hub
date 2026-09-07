@@ -125,6 +125,18 @@ export async function sumCostsForCompetencia(
   return (data ?? []).reduce((sum, row) => sum + row.value_cents, 0);
 }
 
+export async function createCostCategory(orgId: string, name: string): Promise<void> {
+  const supabase = createAdminClient();
+  const { error } = await supabase.from("cost_categories").insert({ org_id: orgId, name });
+  if (error) throw new Error(`Falha ao criar categoria: ${error.message}`);
+}
+
+export async function deleteCostCategory(orgId: string, categoryId: string): Promise<void> {
+  const supabase = createAdminClient();
+  const { error } = await supabase.from("cost_categories").delete().eq("org_id", orgId).eq("id", categoryId);
+  if (error) throw new Error(`Falha ao remover categoria: ${error.message}`);
+}
+
 export async function listCostsForCompetencia(orgId: string, competencia: string): Promise<CostRow[]> {
   const supabase = createAdminClient();
   const { data, error } = await supabase

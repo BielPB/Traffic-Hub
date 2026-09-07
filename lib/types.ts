@@ -221,6 +221,18 @@ export type StrategyTemplateRow = {
   created_at: string;
 };
 
+export type ReportRow = {
+  id: string;
+  org_id: string;
+  client_id: string | null;
+  type: "individual" | "consolidado";
+  period_start: string;
+  period_end: string;
+  config: { analysis?: string; hideInternal?: boolean };
+  generated_by: string | null;
+  generated_at: string;
+};
+
 export type MetricGoalRow = {
   id: string;
   org_id: string;
