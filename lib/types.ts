@@ -195,6 +195,32 @@ export type CampaignMetricRow = {
   attributed_revenue_cents: number;
 };
 
+export type StrategyRow = {
+  id: string;
+  org_id: string;
+  client_id: string;
+  version_number: number;
+  status: "atual" | "arquivada";
+  created_by: string | null;
+  created_at: string;
+};
+
+export type StrategySectionRow = {
+  id: string;
+  strategy_id: string;
+  section_type: string;
+  order: number;
+  content: { text?: string };
+};
+
+export type StrategyTemplateRow = {
+  id: string;
+  org_id: string;
+  name: string;
+  sections: { section_type: string; order: number; content: { text?: string } }[];
+  created_at: string;
+};
+
 export type MetricGoalRow = {
   id: string;
   org_id: string;

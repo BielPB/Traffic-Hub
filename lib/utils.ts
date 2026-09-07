@@ -12,12 +12,14 @@ export function formatCurrency(cents: number, currency = "BRL") {
   }).format(cents / 100);
 }
 
+/** Aceita tanto "AAAA-MM-DD" (coluna date) quanto um timestamp completo (coluna timestamptz). */
 export function formatDate(iso: string) {
+  const date = iso.includes("T") ? new Date(iso) : new Date(`${iso}T00:00:00`);
   return new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-  }).format(new Date(`${iso}T00:00:00`));
+  }).format(date);
 }
 
 /** Converte "1.500,00" ou "1500,00" (formato pt-BR) em centavos (150000). */

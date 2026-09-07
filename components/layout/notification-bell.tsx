@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Bell } from "lucide-react";
 import type { Alert } from "@/lib/data/alerts";
 
-export function NotificationBell({ alerts }: { alerts: Alert[] }) {
+export function NotificationBell({ alerts = [] }: { alerts?: Alert[] }) {
   const [open, setOpen] = useState(false);
 
   return (
